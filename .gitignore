@@ -1,0 +1,12 @@
+# Local analysis and renders
+_analysis/
+_materials/
+*.tmp
+~$*.pptx
+
+# Incoming speaker files are added deliberately
+incoming/**/renders/
+
+# System files
+.DS_Store
+Thumbs.db
