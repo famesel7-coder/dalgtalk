@@ -1,0 +1,54 @@
+name: Fetch corporate template
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fetch-corporate-template.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download and validate corporate template
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import urllib.parse
+          import urllib.request
+          import zipfile
+
+          public_url = "https://disk.yandex.ru/i/wU0Wc5hVuUhIew"
+          query = urllib.parse.urlencode({"public_key": public_url})
+          metadata_url = f"https://cloud-api.yandex.net/v1/disk/public/resources?{query}"
+
+          with urllib.request.urlopen(metadata_url, timeout=60) as response:
+              metadata = json.load(response)
+
+          destination = pathlib.Path("assets/corporate-template.pptx")
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          urllib.request.urlretrieve(metadata["file"], destination)
+
+          with zipfile.ZipFile(destination) as archive:
+              if "ppt/presentation.xml" not in archive.namelist():
+                  raise RuntimeError("Downloaded file is not a valid PowerPoint presentation")
+          PY
+
+      - name: Commit template
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/corporate-template.pptx
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Add corporate presentation template"
+          git push
